@@ -3,10 +3,14 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 import { BN, Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
-import { delay, getDefaultWallet } from "./utils";
+import { delay, getDefaultWallet } from "../sdk/utils";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
-import { Config } from "./config";
 import { assert } from "chai";
+import { getAccountData, getPda } from "../sdk/pda";
+import {
+  createDepositInstruction,
+  createInitializeInstruction,
+} from "../sdk/instrument";
 
 describe("move-pool", () => {
   // Configure the client to use the local cluster.
@@ -36,57 +40,42 @@ describe("move-pool", () => {
   });
 
   it("Initialize failure unauthorized", async () => {
-    const { globalState, vault, programData } = getPda();
+    try {
+      const initializeInstruction = await createInitializeInstruction(
+        program,
+        moveToken,
+        otherWallet.publicKey
+      );
+      const tx = new anchor.web3.Transaction().add(initializeInstruction);
+      await provider.sendAndConfirm(tx, [otherWallet]);
+      assert(false);
+    } catch (err) {
+      assert(err.logs.some((log: string) => log.includes("NotAuthorized")));
+    }
+  });
+
+  it("Is initialized!", async () => {
+    // Add your test here.
+    const { vault, programData } = getPda(program);
     const vaultMoveAta = await getAssociatedTokenAddress(
       moveToken,
       vault,
       true
     );
     try {
-      await program.methods
-        .initialize()
-        .accounts({
-          moveToken,
-          globalState,
-          vault,
-          authority: otherWallet.publicKey,
-          program: program.programId,
-          programData: programData,
-          vaultMoveAta,
-        })
-        .signers([otherWallet])
-        .rpc();
-      assert(false);
-    } catch (err) {
-      assert(err.error.errorCode.code === "NotAuthorized");
-    }
-  });
-
-  it("Is initialized!", async () => {
-    // Add your test here.
-    const { globalState, vault, programData } = getPda();
-    const vaultMoveAta = await getAssociatedTokenAddress(
-      moveToken,
-      vault,
-      true
-    );
-    const tx = await program.methods
-      .initialize()
-      .accounts({
+      const initializeInstruction = await createInitializeInstruction(
+        program,
         moveToken,
-        globalState,
-        vault,
-        authority: provider.publicKey,
-        program: program.programId,
-        programData: programData,
-        vaultMoveAta,
-      })
-      .rpc();
-    console.log("Initialize success at tx", tx);
-
-    const globalStateAccount = await program.account.globalState.fetch(
-      globalState
-    );
+        provider.publicKey
+      );
+      const tx = new anchor.web3.Transaction().add(initializeInstruction);
+      const txHash = await provider.sendAndConfirm(tx);
+      console.log("Initialize success at tx", txHash);
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+    const { globalStateAccount } = await getAccountData(program);
     assert(globalStateAccount.admin.equals(provider.publicKey));
     assert(globalStateAccount.moveToken.equals(moveToken));
     assert((await program.account.vault.fetch(vault)) != null);
@@ -95,72 +84,37 @@ describe("move-pool", () => {
 
   it("Deposit sol successfully", async () => {
     const amount = new BN(5 * LAMPORTS_PER_SOL);
-    const { globalState, vault } = getPda();
-    const { vaultAccount: vaultBefore } = await getAccountData();
+    const { vaultAccount: vaultBefore } = await getAccountData(program);
     try {
-      const tx = await program.methods
-        .depositSol(amount)
-        .accounts({
-          globalState,
-          vault,
-          user: otherWallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([otherWallet])
-        .rpc();
-      console.log("Deposit sol success at tx", tx);
+      const depositInstruction = await createDepositInstruction(
+        program,
+        otherWallet.publicKey,
+        amount
+      );
+      const tx = new anchor.web3.Transaction().add(depositInstruction);
+      const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
+      console.log("Deposit sol success at tx", txHash);
     } catch (err) {
       console.error(err);
       throw err;
     }
-
-    const { vaultAccount: vaultAfter } = await getAccountData();
+    const { vaultAccount: vaultAfter } = await getAccountData(program);
     assert(vaultAfter.solAmount.sub(vaultBefore.solAmount).eq(amount));
   });
 
   it("Deposit sol failure AmountTooSmall", async () => {
     const amount = new BN(0);
-    const { globalState, vault } = getPda();
     try {
-      const tx = await program.methods
-        .depositSol(amount)
-        .accounts({
-          globalState,
-          vault,
-          user: otherWallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        })
-        .signers([otherWallet])
-        .rpc();
-      console.log("Deposit sol success at tx", tx);
+      const depositInstruction = await createDepositInstruction(
+        program,
+        otherWallet.publicKey,
+        amount
+      );
+      const tx = new anchor.web3.Transaction().add(depositInstruction);
+      await provider.sendAndConfirm(tx, [otherWallet]);
+      assert(false);
     } catch (err) {
-      assert(err.error.errorCode.code === "AmountTooSmall");
+      assert(err.logs.some((log: string) => log.includes("AmountTooSmall")));
     }
   });
-
-  function getPda() {
-    const [globalState] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("global_state")],
-      program.programId
-    );
-    const [vault] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("vault")],
-      program.programId
-    );
-    const [programData] = anchor.web3.PublicKey.findProgramAddressSync(
-      [program.programId.toBuffer()],
-      Config.BPF_LOADER_PROGRAM_ID
-    );
-
-    return { globalState, vault, programData };
-  }
-
-  async function getAccountData() {
-    const { globalState, vault } = getPda();
-    const globalStateAccount = await program.account.globalState.fetch(
-      globalState
-    );
-    const vaultAccount = await program.account.vault.fetch(vault);
-    return { globalStateAccount, vaultAccount };
-  }
 });
