@@ -1,4 +1,9 @@
+mod instructions;
+mod states;
+
 use anchor_lang::prelude::*;
+
+use instructions::*;
 
 declare_id!("AmFDUdCyJM8FAo6RrHyfQWb47bR9Ero8Px8u7KeQbhU8");
 
@@ -7,9 +12,6 @@ pub mod move_pool {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        Ok(())
+        initialize::handler(ctx)
     }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
