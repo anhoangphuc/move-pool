@@ -24,7 +24,7 @@ export async function createInitializeInstruction(
     })
     .instruction();
 }
-export async function createDepositInstruction(
+export async function createDepositSolInstruction(
   program: Program<MovePool>,
   user: anchor.web3.PublicKey,
   amount: BN
@@ -37,6 +37,28 @@ export async function createDepositInstruction(
       vault,
       user: user,
       systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .instruction();
+}
+
+export async function createDepositMoveInstruction(
+  program: Program<MovePool>,
+  userAta: anchor.web3.PublicKey,
+  authority: anchor.web3.PublicKey,
+  moveToken: anchor.web3.PublicKey,
+  amount: BN
+) {
+  const { globalState, vault } = getPda(program);
+  const vaultAta = await getAssociatedTokenAddress(moveToken, vault, true);
+  return await program.methods
+    .depositMove(amount)
+    .accounts({
+      globalState,
+      vault,
+      userAta,
+      vaultAta,
+      authority,
+      moveToken,
     })
     .instruction();
 }

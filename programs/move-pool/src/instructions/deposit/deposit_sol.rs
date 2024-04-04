@@ -24,11 +24,11 @@ pub struct DepositSol<'info> {
 }
 
 pub fn handler(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
-    let system_program = &ctx.accounts.system_program;
-    let vault = &mut ctx.accounts.vault;
     if amount == 0 {
         return Err(MovePoolError::ZeroAmountIn.into());
     }
+    let system_program = &ctx.accounts.system_program;
+    let vault = &mut ctx.accounts.vault;
     system_program::transfer(
         CpiContext::new(
             system_program.to_account_info(),

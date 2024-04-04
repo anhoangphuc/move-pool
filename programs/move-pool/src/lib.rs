@@ -20,4 +20,8 @@ pub mod move_pool {
     pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
         deposit::deposit_sol::handler(ctx, amount)
     }
+
+    pub fn deposit_move(ctx: Context<DepositMove>, amount: u64) -> Result<()> {
+        deposit::deposit_move::handler(ctx, amount)
+    }
 }
