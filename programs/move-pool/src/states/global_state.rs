@@ -12,6 +12,7 @@ pub struct GlobalState {
 
 impl GlobalState {
     pub const SPACE: usize = 32 * 2 + 1;
+    pub const SEED: &'static [u8] = b"global_state";
 
     pub fn initialize(&mut self, admin: Pubkey, move_token: Pubkey) -> Result<()> {
         self.admin = admin;

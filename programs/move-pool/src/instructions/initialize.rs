@@ -1,7 +1,8 @@
 use crate::program::MovePool;
 use crate::states::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -10,7 +11,7 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = 8 + GlobalState::SPACE,
-        seeds = [b"global_state"],
+        seeds = [GlobalState::SEED],
         bump,
     )]
     pub global_state: Account<'info, GlobalState>,
@@ -19,22 +20,31 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = 8 + Vault::SPACE,
-        seeds = [b"vault"],
+        seeds = [Vault::SEED],
         bump,
     )]
     pub vault: Account<'info, Vault>,
     #[account()]
     pub move_token: Account<'info, Mint>,
     #[account(
+        init,
+        payer = authority,
+        associated_token::mint = move_token,
+        associated_token::authority = vault,
+    )]
+    pub vault_move_ata: Account<'info, TokenAccount>,
+    #[account(
         constraint = program.programdata_address()? == Some(program_data.key()),
     )]
     pub program: Program<'info, MovePool>,
     #[account(
-        constraint = program_data.upgrade_authority_address == Some(authority.key())
+        constraint = program_data.upgrade_authority_address == Some(authority.key()),
     )]
     pub program_data: Account<'info, ProgramData>,
     #[account(mut)]
     pub authority: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
