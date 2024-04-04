@@ -1,13 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 import { Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
-import { getDefaultWallet } from "./utils";
-import {
-  getAccount,
-  getAssociatedTokenAddress,
-  getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+import { delay, getDefaultWallet } from "./utils";
+import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { Config } from "./config";
 import { assert } from "chai";
 
@@ -28,6 +25,39 @@ describe("move-pool", () => {
       null,
       8
     );
+  });
+
+  it("Initialize failed unauthorized", async () => {
+    const otherWallet = anchor.web3.Keypair.generate();
+    await provider.connection.requestAirdrop(
+      otherWallet.publicKey,
+      10 * LAMPORTS_PER_SOL
+    );
+    await delay(5000);
+    const { globalState, vault, programData } = getPda();
+    const vaultMoveAta = await getAssociatedTokenAddress(
+      moveToken,
+      vault,
+      true
+    );
+    try {
+      await program.methods
+        .initialize()
+        .accounts({
+          moveToken,
+          globalState,
+          vault,
+          authority: otherWallet.publicKey,
+          program: program.programId,
+          programData: programData,
+          vaultMoveAta,
+        })
+        .signers([otherWallet])
+        .rpc();
+      assert(false);
+    } catch (err) {
+      assert(err.error.errorCode.code === "NotAuthorized");
+    }
   });
 
   it("Is initialized!", async () => {

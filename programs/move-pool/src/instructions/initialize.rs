@@ -1,3 +1,4 @@
+use crate::error::MovePoolError;
 use crate::program::MovePool;
 use crate::states::*;
 use anchor_lang::prelude::*;
@@ -38,7 +39,7 @@ pub struct Initialize<'info> {
     )]
     pub program: Program<'info, MovePool>,
     #[account(
-        constraint = program_data.upgrade_authority_address == Some(authority.key()),
+        constraint = program_data.upgrade_authority_address == Some(authority.key()) @ MovePoolError::NotAuthorized,
     )]
     pub program_data: Account<'info, ProgramData>,
     #[account(mut)]

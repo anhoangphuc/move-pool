@@ -10,3 +10,7 @@ export function getDefaultWallet() {
     Uint8Array.from(JSON.parse(data.toString()))
   );
 }
+
+export function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
