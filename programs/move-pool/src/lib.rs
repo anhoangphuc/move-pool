@@ -1,4 +1,5 @@
 mod error;
+mod events;
 mod instructions;
 mod states;
 
@@ -14,5 +15,9 @@ pub mod move_pool {
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         initialize::handler(ctx)
+    }
+
+    pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
+        deposit::deposit_sol::handler(ctx, amount)
     }
 }
