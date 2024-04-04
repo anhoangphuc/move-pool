@@ -27,7 +27,7 @@ pub fn handler(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
     let system_program = &ctx.accounts.system_program;
     let vault = &mut ctx.accounts.vault;
     if amount == 0 {
-        return Err(MovePoolError::AmountTooSmall.into());
+        return Err(MovePoolError::ZeroAmountIn.into());
     }
     system_program::transfer(
         CpiContext::new(

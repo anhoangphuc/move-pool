@@ -114,7 +114,7 @@ describe("move-pool", () => {
       await provider.sendAndConfirm(tx, [otherWallet]);
       assert(false);
     } catch (err) {
-      assert(err.logs.some((log: string) => log.includes("AmountTooSmall")));
+      assert(err.logs.some((log: string) => log.includes("ZeroAmountIn")));
     }
   });
 });

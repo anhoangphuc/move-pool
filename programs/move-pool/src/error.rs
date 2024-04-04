@@ -4,6 +4,6 @@ use anchor_lang::prelude::*;
 pub enum MovePoolError {
     #[msg("Not Authorized")]
     NotAuthorized,
-    #[msg("AmountTooSmall")]
-    AmountTooSmall,
+    #[msg("ZeroAmountIn")]
+    ZeroAmountIn,
 }
