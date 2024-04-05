@@ -32,4 +32,12 @@ pub mod move_pool {
     pub fn swap_move_to_sol(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
         swap_move_to_sol::handler(ctx, amount_in)
     }
+
+    pub fn set_config(
+        ctx: Context<SetConfig>,
+        admin: Option<Pubkey>,
+        is_pending: Option<bool>,
+    ) -> Result<()> {
+        set_config::handler(ctx, admin, is_pending)
+    }
 }

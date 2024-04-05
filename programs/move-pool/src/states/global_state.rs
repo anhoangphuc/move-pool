@@ -20,4 +20,18 @@ impl GlobalState {
 
         Ok(())
     }
+
+    pub fn set_admin(&mut self, admin: Option<Pubkey>) -> Result<()> {
+        if let Some(admin) = admin {
+            self.admin = admin;
+        }
+        Ok(())
+    }
+
+    pub fn set_pending(&mut self, is_pending: Option<bool>) -> Result<()> {
+        if let Some(is_pending) = is_pending {
+            self.is_pending = is_pending;
+        }
+        Ok(())
+    }
 }
