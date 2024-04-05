@@ -3,6 +3,7 @@ import { BN, Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
 import { getPda } from "./pda";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 
 export async function createInitializeInstruction(
   program: Program<MovePool>,
@@ -59,6 +60,28 @@ export async function createDepositMoveInstruction(
       vaultAta,
       authority,
       moveToken,
+    })
+    .instruction();
+}
+
+export async function createSwapSolToMoveInstruction(
+  program: Program<MovePool>,
+  user: anchor.web3.PublicKey,
+  moveToken: PublicKey,
+  amountIn: BN
+) {
+  const { globalState, vault } = getPda(program);
+  const userAta = await getAssociatedTokenAddress(moveToken, user);
+  const vaultAta = await getAssociatedTokenAddress(moveToken, vault, true);
+  return await program.methods
+    .swapSolToMove(amountIn)
+    .accounts({
+      globalState,
+      moveToken,
+      user,
+      userAta,
+      vault,
+      vaultAta,
     })
     .instruction();
 }

@@ -68,7 +68,7 @@ pub fn handler(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
         amount_in,
     )?;
 
-    let amount_out = get_move_out(amount_in);
+    let amount_out = get_move_out(amount_in, ctx.accounts.move_token.decimals)?;
     if amount_out == 0 {
         return Err(MovePoolError::ZeroAmountOut.into());
     }
@@ -97,7 +97,37 @@ pub fn handler(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
     Ok(())
 }
 
-fn get_move_out(amount_in: u64) -> u64 {
-    // TODO: Handle decimals here
-    amount_in * 10
+fn get_move_out(amount_in: u64, move_decimal: u8) -> Result<u64> {
+    // Decimal of SOL is 9
+    let amount_out = (amount_in as u128) * 10 * 10_u128.pow(move_decimal as u32) / 10_u128.pow(9);
+    if amount_out > u64::MAX as u128 {
+        Err(MovePoolError::MathError.into())
+    } else {
+        Ok(amount_out as u64)
+    }
+}
+
+#[test]
+fn test_get_move_out_with_decimal_9() {
+    assert_eq!(get_move_out(1_000_000_000, 9), Ok(10_000_000_000));
+    assert_eq!(get_move_out(100_000_000, 9), Ok(1_000_000_000));
+    assert_eq!(get_move_out(1, 9), Ok(10));
+}
+
+#[test]
+fn test_get_move_out_with_decimal_6() {
+    assert_eq!(get_move_out(1_000_000_000, 6), Ok(10_000_000));
+    assert_eq!(get_move_out(100_000_000, 6), Ok(1_000_000));
+    assert_eq!(get_move_out(1, 6), Ok(0));
+}
+
+#[test]
+fn test_get_move_out_with_decimal_12() {
+    assert_eq!(get_move_out(1_000_000_000, 12), Ok(10_000_000_000_000));
+    assert_eq!(get_move_out(100_000_000, 12), Ok(1_000_000_000_000));
+    assert_eq!(get_move_out(1, 12), Ok(10_000));
+    assert_eq!(
+        get_move_out(u64::MAX, 12),
+        Err(MovePoolError::MathError.into())
+    );
 }

@@ -10,4 +10,6 @@ pub enum MovePoolError {
     ZeroAmountOut,
     #[msg("NotEnoughBalance")]
     NotEnoughBalance,
+    #[msg("MathError")]
+    MathError,
 }

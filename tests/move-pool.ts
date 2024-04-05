@@ -18,6 +18,7 @@ import {
   createDepositSolInstruction,
   createDepositMoveInstruction,
   createInitializeInstruction,
+  createSwapSolToMoveInstruction,
 } from "../sdk/instrument";
 
 describe("move-pool", () => {
@@ -42,7 +43,7 @@ describe("move-pool", () => {
     otherWallet = anchor.web3.Keypair.generate();
     await provider.connection.requestAirdrop(
       otherWallet.publicKey,
-      10 * LAMPORTS_PER_SOL
+      1000 * LAMPORTS_PER_SOL
     );
     await delay(5000);
   });
@@ -91,7 +92,7 @@ describe("move-pool", () => {
   });
 
   it("Deposit sol successfully", async () => {
-    const amount = new BN(5 * LAMPORTS_PER_SOL);
+    const amount = new BN(100 * LAMPORTS_PER_SOL);
     const { vaultAccount: vaultBefore } = await getAccountData(program);
     const { vault } = getPda(program);
     const { solBalance: solBalanceBefore } = await getBalance(
@@ -143,7 +144,7 @@ describe("move-pool", () => {
 
   it("Deposit move successfully", async () => {
     const moveMint = await getMint(provider.connection, moveToken);
-    const amount = new BN(5 * 10 ** moveMint.decimals);
+    const amount = new BN(100 * 10 ** moveMint.decimals);
     const userAta = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet,
@@ -259,6 +260,24 @@ describe("move-pool", () => {
             log.includes("move_token") && log.includes("ConstraintAddress")
         )
       );
+    }
+  });
+
+  it("Swap SOL to MOVE successfully", async () => {
+    const amountIn = new BN(1 * LAMPORTS_PER_SOL);
+    try {
+      const instruction = await createSwapSolToMoveInstruction(
+        program,
+        otherWallet.publicKey,
+        moveToken,
+        amountIn
+      );
+      const tx = new anchor.web3.Transaction().add(instruction);
+      const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
+      console.log("Swap SOL to MOVE success at tx", txHash);
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
   });
 });
