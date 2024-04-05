@@ -31,13 +31,15 @@ describe("move-pool", () => {
 
   let moveToken: anchor.web3.PublicKey;
   let otherWallet: anchor.web3.Keypair;
+  let moveDecimal: number;
   before(async () => {
+    moveDecimal = 8;
     moveToken = await token.createMint(
       provider.connection,
       wallet,
       provider.publicKey,
       null,
-      8
+      moveDecimal
     );
 
     otherWallet = anchor.web3.Keypair.generate();
@@ -144,7 +146,7 @@ describe("move-pool", () => {
 
   it("Deposit move successfully", async () => {
     const moveMint = await getMint(provider.connection, moveToken);
-    const amount = new BN(100 * 10 ** moveMint.decimals);
+    const amount = new BN(100 * 10 ** moveDecimal);
     const userAta = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet,
@@ -264,7 +266,18 @@ describe("move-pool", () => {
   });
 
   it("Swap SOL to MOVE successfully", async () => {
-    const amountIn = new BN(1 * LAMPORTS_PER_SOL);
+    const amount = 1;
+    const amountIn = new BN(LAMPORTS_PER_SOL).mul(new BN(amount));
+    const { vault } = getPda(program);
+    const {
+      solBalance: solUserBalanceBefore,
+      tokenBalance: tokenUserBalanceBefore,
+    } = await getBalance(provider.connection, otherWallet.publicKey, moveToken);
+    const {
+      solBalance: solVaultBalanceBefore,
+      tokenBalance: tokenVaultBalanceBefore,
+    } = await getBalance(provider.connection, vault, moveToken);
+    const { vaultAccount: vaultAccountBefore } = await getAccountData(program);
     try {
       const instruction = await createSwapSolToMoveInstruction(
         program,
@@ -279,5 +292,39 @@ describe("move-pool", () => {
       console.error(err);
       throw err;
     }
+    const {
+      solBalance: solUserBalanceAfter,
+      tokenBalance: tokenUserBalanceAfter,
+    } = await getBalance(provider.connection, otherWallet.publicKey, moveToken);
+    const {
+      solBalance: solVaultBalanceAfter,
+      tokenBalance: tokenVaultBalanceAfter,
+    } = await getBalance(provider.connection, vault, moveToken);
+    const { vaultAccount: vaultAccountAfter } = await getAccountData(program);
+    const expectedAmountOut = new BN(10 * amount * 10 ** moveDecimal);
+    // SOL user balance decrease by 1
+    assert(solUserBalanceBefore - solUserBalanceAfter == amountIn.toNumber());
+    // MOVE user balance increase by 10
+    assert(
+      tokenUserBalanceAfter - tokenUserBalanceBefore ==
+        BigInt(expectedAmountOut.toString())
+    );
+    // SOL vault balance increase by 1
+    assert(solVaultBalanceAfter - solVaultBalanceBefore == amountIn.toNumber());
+    // MOVE vault balance decrease by 10
+    assert(
+      tokenVaultBalanceBefore - tokenVaultBalanceAfter ==
+        BigInt(10 * amount * 10 ** moveDecimal)
+    );
+    // SOL amount increase by amount
+    assert(
+      vaultAccountAfter.solAmount.sub(vaultAccountBefore.solAmount).eq(amountIn)
+    );
+    // MOVE amount decrease by amount
+    assert(
+      vaultAccountBefore.moveAmount
+        .sub(vaultAccountAfter.moveAmount)
+        .eq(expectedAmountOut)
+    );
   });
 });

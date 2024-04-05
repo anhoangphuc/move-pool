@@ -1,4 +1,5 @@
 use crate::error::MovePoolError;
+use crate::events;
 use crate::states::*;
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
@@ -93,6 +94,13 @@ pub fn handler(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
     // Update vault balances
     vault.deposit(Some(amount_in), None)?;
     vault.withdraw(None, Some(amount_out))?;
+
+    emit!(events::swap::SwapSolToMove {
+        user: *user.key,
+        sol_in: amount_in,
+        user_move_ata: user_ata.key(),
+        move_out: amount_out,
+    });
 
     Ok(())
 }
