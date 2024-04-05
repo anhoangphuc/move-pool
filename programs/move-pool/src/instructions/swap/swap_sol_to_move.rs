@@ -1,0 +1,103 @@
+use crate::error::MovePoolError;
+use crate::states::*;
+use anchor_lang::prelude::*;
+use anchor_lang::system_program;
+use anchor_spl::token;
+use anchor_spl::token::{Mint, Token, TokenAccount};
+
+#[derive(Accounts)]
+pub struct SwapSolToMove<'info> {
+    #[account(
+        seeds = [GlobalState::SEED],
+        bump,
+        constraint = global_state.is_pending == false,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+    #[account(
+        address = global_state.move_token,
+    )]
+    pub move_token: Account<'info, Mint>,
+
+    // User account
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        constraint = user_ata.mint == move_token.key(),
+    )]
+    pub user_ata: Account<'info, TokenAccount>,
+
+    // Vault account
+    #[account(
+        mut,
+        seeds = [Vault::SEED],
+        bump,
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        associated_token::mint = move_token,
+        associated_token::authority = vault,
+    )]
+    pub vault_ata: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn handler(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
+    if amount_in == 0 {
+        return Err(MovePoolError::ZeroAmountIn.into());
+    }
+
+    let vault = &mut ctx.accounts.vault;
+    let user = &ctx.accounts.user;
+    let user_ata = &ctx.accounts.user_ata;
+    let vault_ata = &ctx.accounts.vault_ata;
+    let system_program = &ctx.accounts.system_program;
+
+    // Transfer SOL from user to vault
+    system_program::transfer(
+        CpiContext::new(
+            system_program.to_account_info(),
+            system_program::Transfer {
+                from: user.to_account_info(),
+                to: vault.to_account_info(),
+            },
+        ),
+        amount_in,
+    )?;
+
+    let amount_out = get_move_out(amount_in);
+    if amount_out == 0 {
+        return Err(MovePoolError::ZeroAmountOut.into());
+    }
+    if amount_out > vault.move_amount {
+        return Err(MovePoolError::NotEnoughBalance.into());
+    }
+
+    // Transfer MOVE from vault_ata to user_ata
+    token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            token::Transfer {
+                from: vault_ata.to_account_info(),
+                to: user_ata.to_account_info(),
+                authority: vault.to_account_info(),
+            },
+            &[&[Vault::SEED, &[ctx.bumps.vault]]],
+        ),
+        amount_out,
+    )?;
+
+    // Update vault balances
+    vault.deposit(Some(amount_in), None)?;
+    vault.withdraw(None, Some(amount_out))?;
+
+    Ok(())
+}
+
+fn get_move_out(amount_in: u64) -> u64 {
+    // TODO: Handle decimals here
+    amount_in * 10
+}

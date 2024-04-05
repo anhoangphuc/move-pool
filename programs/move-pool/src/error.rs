@@ -6,4 +6,8 @@ pub enum MovePoolError {
     NotAuthorized,
     #[msg("ZeroAmountIn")]
     ZeroAmountIn,
+    #[msg("ZeroAmountOut")]
+    ZeroAmountOut,
+    #[msg("NotEnoughBalance")]
+    NotEnoughBalance,
 }

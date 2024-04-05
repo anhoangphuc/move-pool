@@ -21,4 +21,14 @@ impl Vault {
         }
         Ok(())
     }
+
+    pub fn withdraw(&mut self, sol_amount: Option<u64>, move_amount: Option<u64>) -> Result<()> {
+        if let Some(sol_amount) = sol_amount {
+            self.sol_amount -= sol_amount;
+        }
+        if let Some(move_amount) = move_amount {
+            self.move_amount -= move_amount;
+        }
+        Ok(())
+    }
 }
