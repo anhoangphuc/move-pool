@@ -20,6 +20,7 @@ import {
   createInitializeInstruction,
   createSwapSolToMoveInstruction,
   createSwapMoveToSolInstruction,
+  createSetupConfigInstruction,
 } from "../sdk/instrument";
 
 describe("move-pool", () => {
@@ -51,7 +52,7 @@ describe("move-pool", () => {
     await delay(5000);
   });
 
-  describe("Initialize", () => {
+  describe("INITIALIZE METHOD", () => {
     it("Initialize failure unauthorized", async () => {
       try {
         const initializeInstruction = await createInitializeInstruction(
@@ -82,8 +83,7 @@ describe("move-pool", () => {
           provider.publicKey
         );
         const tx = new anchor.web3.Transaction().add(initializeInstruction);
-        const txHash = await provider.sendAndConfirm(tx);
-        console.log("Initialize success at tx", txHash);
+        await provider.sendAndConfirm(tx);
       } catch (err) {
         console.error(err);
         throw err;
@@ -96,7 +96,7 @@ describe("move-pool", () => {
     });
   });
 
-  describe("Deposit", () => {
+  describe("DEPOSIT METHOD", () => {
     it("Deposit sol successfully", async () => {
       const amount = new BN(100 * LAMPORTS_PER_SOL);
       const { vaultAccount: vaultBefore } = await getAccountData(program);
@@ -113,8 +113,7 @@ describe("move-pool", () => {
           amount
         );
         const tx = new anchor.web3.Transaction().add(depositInstruction);
-        const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
-        console.log("Deposit sol success at tx", txHash);
+        await provider.sendAndConfirm(tx, [otherWallet]);
       } catch (err) {
         console.error(err);
         throw err;
@@ -186,8 +185,7 @@ describe("move-pool", () => {
           amount
         );
         const tx = new anchor.web3.Transaction().add(depositMoveInstruction);
-        const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
-        console.log("Deposit move success at tx", txHash);
+        await provider.sendAndConfirm(tx, [otherWallet]);
       } catch (err) {
         console.error(err);
         throw err;
@@ -258,7 +256,7 @@ describe("move-pool", () => {
           amount
         );
         const tx = new anchor.web3.Transaction().add(depositMoveInstruction);
-        const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
+        await provider.sendAndConfirm(tx, [otherWallet]);
         assert(false);
       } catch (err) {
         assert(
@@ -271,7 +269,7 @@ describe("move-pool", () => {
     });
   });
 
-  describe("Swap", () => {
+  describe("SWAP METHOD", () => {
     it("Swap SOL to MOVE successfully", async () => {
       const amount = 1;
       const amountIn = new BN(LAMPORTS_PER_SOL).mul(new BN(amount));
@@ -299,8 +297,7 @@ describe("move-pool", () => {
           amountIn
         );
         const tx = new anchor.web3.Transaction().add(instruction);
-        const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
-        console.log("Swap SOL to MOVE success at tx", txHash);
+        await provider.sendAndConfirm(tx, [otherWallet]);
       } catch (err) {
         console.error(err);
         throw err;
@@ -393,8 +390,7 @@ describe("move-pool", () => {
           amountIn
         );
         const tx = new anchor.web3.Transaction().add(instruction);
-        const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
-        console.log("Swap MOVE to SOL success at tx", txHash);
+        await provider.sendAndConfirm(tx, [otherWallet]);
       } catch (err) {
         console.error(err);
         throw err;
@@ -445,6 +441,125 @@ describe("move-pool", () => {
           .sub(vaultAccountBefore.moveAmount)
           .eq(amountIn)
       );
+    });
+  });
+
+  describe("ADMIN METHOD", () => {
+    it("Transfer admin failure unauthorized", async () => {
+      try {
+        const setupConfigInstruction = await createSetupConfigInstruction(
+          program,
+          otherWallet.publicKey,
+          otherWallet.publicKey,
+          null
+        );
+        const tx = new anchor.web3.Transaction().add(setupConfigInstruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+        assert(false);
+      } catch (error) {
+        assert(error.logs.some((log: string) => log.includes("NotAuthorized")));
+      }
+    });
+
+    it("Transfer admin success", async () => {
+      try {
+        const setupConfigInstruction = await createSetupConfigInstruction(
+          program,
+          wallet.publicKey,
+          otherWallet.publicKey,
+          null
+        );
+        const tx = new anchor.web3.Transaction().add(setupConfigInstruction);
+        await provider.sendAndConfirm(tx, [wallet]);
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+
+      const { globalStateAccount } = await getAccountData(program);
+      assert(globalStateAccount.admin.equals(otherWallet.publicKey));
+      assert(globalStateAccount.isPending === false);
+    });
+
+    it("Set program pending", async () => {
+      try {
+        const setupConfigInstruction = await createSetupConfigInstruction(
+          program,
+          otherWallet.publicKey,
+          null,
+          true
+        );
+        const tx = new anchor.web3.Transaction().add(setupConfigInstruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+
+      const { globalStateAccount } = await getAccountData(program);
+      assert(globalStateAccount.isPending === true);
+    });
+
+    it("Can not perform program when pending", async () => {
+      try {
+        const depositInstruction = await createDepositSolInstruction(
+          program,
+          otherWallet.publicKey,
+          new BN(10000)
+        );
+        const tx = new anchor.web3.Transaction().add(depositInstruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+        assert(false);
+      } catch (err) {
+        assert(err.logs.some((log: string) => log.includes("Pending")));
+      }
+
+      const userAta = await getAssociatedTokenAddress(
+        moveToken,
+        otherWallet.publicKey
+      );
+      try {
+        const depositMoveInstruction = await createDepositMoveInstruction(
+          program,
+          userAta,
+          otherWallet.publicKey,
+          moveToken,
+          new BN(10000)
+        );
+        const tx = new anchor.web3.Transaction().add(depositMoveInstruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+        assert(false);
+      } catch (err) {
+        assert(err.logs.some((log: string) => log.includes("Pending")));
+      }
+
+      try {
+        const instruction = await createSwapSolToMoveInstruction(
+          program,
+          otherWallet.publicKey,
+          moveToken,
+          new BN(10000)
+        );
+        const tx = new anchor.web3.Transaction().add(instruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+        assert(false);
+      } catch (err) {
+        assert(err.logs.some((log: string) => log.includes("Pending")));
+      }
+
+      try {
+        const instruction = await createSwapMoveToSolInstruction(
+          program,
+          otherWallet.publicKey,
+          moveToken,
+          new BN(10000)
+        );
+        const tx = new anchor.web3.Transaction().add(instruction);
+        await provider.sendAndConfirm(tx, [otherWallet]);
+        assert(false);
+      } catch (err) {
+        assert(err.logs.some((log: string) => log.includes("Pending")));
+      }
     });
   });
 });

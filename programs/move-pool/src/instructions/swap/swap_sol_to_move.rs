@@ -11,7 +11,7 @@ pub struct Swap<'info> {
     #[account(
         seeds = [GlobalState::SEED],
         bump,
-        constraint = global_state.is_pending == false,
+        constraint = global_state.is_pending == false @ MovePoolError::Pending,
     )]
     pub global_state: Account<'info, GlobalState>,
     #[account(

@@ -7,7 +7,7 @@ use anchor_lang::system_program;
 #[derive(Accounts)]
 pub struct DepositSol<'info> {
     #[account(
-        constraint = global_state.is_pending == false,
+        constraint = global_state.is_pending == false @ MovePoolError::Pending,
         seeds = [GlobalState::SEED],
         bump,
     )]

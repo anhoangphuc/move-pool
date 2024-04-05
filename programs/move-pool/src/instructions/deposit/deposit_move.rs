@@ -1,4 +1,4 @@
-use crate::error::MovePoolError::ZeroAmountIn;
+use crate::error::MovePoolError::{self, ZeroAmountIn};
 use crate::events;
 use crate::states::*;
 use anchor_lang::prelude::*;
@@ -7,7 +7,7 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount};
 #[derive(Accounts)]
 pub struct DepositMove<'info> {
     #[account(
-        constraint = global_state.is_pending == false,
+        constraint = global_state.is_pending == false @ MovePoolError::Pending,
         seeds = [GlobalState::SEED],
         bump,
     )]

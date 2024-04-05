@@ -4,6 +4,7 @@ import { MovePool } from "../target/types/move_pool";
 import { getPda } from "./pda";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
+import * as punycode from "punycode";
 
 export async function createInitializeInstruction(
   program: Program<MovePool>,
@@ -104,6 +105,22 @@ export async function createSwapMoveToSolInstruction(
       userAta,
       vault,
       vaultAta,
+    })
+    .instruction();
+}
+
+export async function createSetupConfigInstruction(
+  program: Program<MovePool>,
+  admin: anchor.web3.PublicKey,
+  newAdmin: anchor.web3.PublicKey | null,
+  isPending: boolean | null
+) {
+  const { globalState, vault } = getPda(program);
+  return await program.methods
+    .setConfig(newAdmin, isPending)
+    .accounts({
+      globalState,
+      admin,
     })
     .instruction();
 }

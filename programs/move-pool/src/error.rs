@@ -12,4 +12,6 @@ pub enum MovePoolError {
     NotEnoughBalance,
     #[msg("MathError")]
     MathError,
+    #[msg("Pending")]
+    Pending,
 }
