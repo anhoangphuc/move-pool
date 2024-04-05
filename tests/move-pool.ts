@@ -33,7 +33,7 @@ describe("move-pool", () => {
   let otherWallet: anchor.web3.Keypair;
   let moveDecimal: number;
   before(async () => {
-    moveDecimal = 8;
+    moveDecimal = 7;
     moveToken = await token.createMint(
       provider.connection,
       wallet,
@@ -326,5 +326,22 @@ describe("move-pool", () => {
         .sub(vaultAccountAfter.moveAmount)
         .eq(expectedAmountOut)
     );
+  });
+
+  it("Swap SOL to MOVE failure ZeroAmountOut", async () => {
+    const amountIn = new BN(1);
+    try {
+      const instruction = await createSwapSolToMoveInstruction(
+        program,
+        otherWallet.publicKey,
+        moveToken,
+        amountIn
+      );
+      const tx = new anchor.web3.Transaction().add(instruction);
+      await provider.sendAndConfirm(tx, [otherWallet]);
+      assert(false);
+    } catch (err) {
+      assert(err.logs.some((log: string) => log.includes("ZeroAmountOut")));
+    }
   });
 });
