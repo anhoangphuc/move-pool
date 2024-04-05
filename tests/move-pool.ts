@@ -3,8 +3,9 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 import { BN, Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
-import { delay, getDefaultWallet } from "../sdk/utils";
+import { delay, getBalance, getDefaultWallet } from "../sdk/utils";
 import {
+  createMint,
   getAccount,
   getAssociatedTokenAddress,
   getMint,
@@ -92,6 +93,12 @@ describe("move-pool", () => {
   it("Deposit sol successfully", async () => {
     const amount = new BN(5 * LAMPORTS_PER_SOL);
     const { vaultAccount: vaultBefore } = await getAccountData(program);
+    const { vault } = getPda(program);
+    const { solBalance: solBalanceBefore } = await getBalance(
+      provider.connection,
+      vault,
+      moveToken
+    );
     try {
       const depositInstruction = await createDepositSolInstruction(
         program,
@@ -106,7 +113,15 @@ describe("move-pool", () => {
       throw err;
     }
     const { vaultAccount: vaultAfter } = await getAccountData(program);
+    // SOL amount increase by amount
     assert(vaultAfter.solAmount.sub(vaultBefore.solAmount).eq(amount));
+    // SOL balance increase by amount
+    const { solBalance: solBalanceAfter } = await getBalance(
+      provider.connection,
+      vault,
+      moveToken
+    );
+    assert(solBalanceAfter - solBalanceBefore == amount.toNumber());
   });
 
   it("Deposit sol failure AmountTooSmall", async () => {
@@ -119,6 +134,7 @@ describe("move-pool", () => {
       );
       const tx = new anchor.web3.Transaction().add(depositInstruction);
       await provider.sendAndConfirm(tx, [otherWallet]);
+      // Fail if no error
       assert(false);
     } catch (err) {
       assert(err.logs.some((log: string) => log.includes("ZeroAmountIn")));
@@ -134,6 +150,7 @@ describe("move-pool", () => {
       moveToken,
       otherWallet.publicKey
     );
+    const { vault } = getPda(program);
     await mintTo(
       provider.connection,
       wallet,
@@ -143,9 +160,15 @@ describe("move-pool", () => {
       BigInt(amount.toString())
     );
     const { vaultAccount: vaultBefore } = await getAccountData(program);
-    const userAtaBefore = await getAccount(
+    const { tokenBalance: moveVaultBalanceBefore } = await getBalance(
       provider.connection,
-      userAta.address
+      vault,
+      moveToken
+    );
+    const { tokenBalance: moveUserBalanceBefore } = await getBalance(
+      provider.connection,
+      otherWallet.publicKey,
+      moveToken
     );
     try {
       const depositMoveInstruction = await createDepositMoveInstruction(
@@ -163,10 +186,79 @@ describe("move-pool", () => {
       throw err;
     }
     const { vaultAccount: vaultAfter } = await getAccountData(program);
-    const userAtaAfter = await getAccount(provider.connection, userAta.address);
-    assert(vaultAfter.moveAmount.sub(vaultBefore.moveAmount).eq(amount));
-    assert(
-      userAtaBefore.amount - userAtaAfter.amount == BigInt(amount.toString())
+    const { tokenBalance: moveVaultBalanceAfter } = await getBalance(
+      provider.connection,
+      vault,
+      moveToken
     );
+    const { tokenBalance: moveUserBalanceAfter } = await getBalance(
+      provider.connection,
+      otherWallet.publicKey,
+      moveToken
+    );
+    // Move amount increase by amount
+    assert(vaultAfter.moveAmount.sub(vaultBefore.moveAmount).eq(amount));
+    // User ATA decrease by amount
+    assert(
+      moveUserBalanceBefore - moveUserBalanceAfter == BigInt(amount.toString())
+    );
+    // Vault ATA increase by amount
+    assert(
+      moveVaultBalanceAfter - moveVaultBalanceBefore ==
+        BigInt(amount.toString())
+    );
+  });
+
+  it("Deposit failure incorrect move_token", async () => {
+    const { vault } = getPda(program);
+    const fakeToken = await createMint(
+      provider.connection,
+      otherWallet,
+      otherWallet.publicKey,
+      null,
+      6
+    );
+    const fakeMint = await getMint(provider.connection, fakeToken);
+    const amount = new BN(5 * 10 ** fakeMint.decimals);
+    const userAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      otherWallet,
+      fakeToken,
+      otherWallet.publicKey
+    );
+    await mintTo(
+      provider.connection,
+      wallet,
+      fakeToken,
+      userAta.address,
+      otherWallet,
+      BigInt(amount.toString())
+    );
+    await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      otherWallet,
+      fakeToken,
+      vault,
+      true
+    );
+    try {
+      const depositMoveInstruction = await createDepositMoveInstruction(
+        program,
+        userAta.address,
+        otherWallet.publicKey,
+        fakeToken,
+        amount
+      );
+      const tx = new anchor.web3.Transaction().add(depositMoveInstruction);
+      const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
+      assert(false);
+    } catch (err) {
+      assert(
+        err.logs.some(
+          (log: string) =>
+            log.includes("move_token") && log.includes("ConstraintAddress")
+        )
+      );
+    }
   });
 });
