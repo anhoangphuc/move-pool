@@ -85,3 +85,25 @@ export async function createSwapSolToMoveInstruction(
     })
     .instruction();
 }
+
+export async function createSwapMoveToSolInstruction(
+  program: Program<MovePool>,
+  user: anchor.web3.PublicKey,
+  moveToken: PublicKey,
+  amountIn: BN
+) {
+  const { globalState, vault } = getPda(program);
+  const userAta = await getAssociatedTokenAddress(moveToken, user);
+  const vaultAta = await getAssociatedTokenAddress(moveToken, vault, true);
+  return await program.methods
+    .swapMoveToSol(amountIn)
+    .accounts({
+      globalState,
+      moveToken,
+      user,
+      userAta,
+      vault,
+      vaultAta,
+    })
+    .instruction();
+}

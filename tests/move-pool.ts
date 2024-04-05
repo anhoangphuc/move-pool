@@ -19,6 +19,7 @@ import {
   createDepositMoveInstruction,
   createInitializeInstruction,
   createSwapSolToMoveInstruction,
+  createSwapMoveToSolInstruction,
 } from "../sdk/instrument";
 
 describe("move-pool", () => {
@@ -343,5 +344,75 @@ describe("move-pool", () => {
     } catch (err) {
       assert(err.logs.some((log: string) => log.includes("ZeroAmountOut")));
     }
+  });
+
+  it("Swap MOVE to SOL successfully", async () => {
+    const amount = 10;
+    const amountIn = new BN(10 ** moveDecimal).mul(new BN(amount));
+    const { vault } = getPda(program);
+    const {
+      solBalance: solUserBalanceBefore,
+      tokenBalance: tokenUserBalanceBefore,
+    } = await getBalance(provider.connection, otherWallet.publicKey, moveToken);
+    const {
+      solBalance: solVaultBalanceBefore,
+      tokenBalance: tokenVaultBalanceBefore,
+    } = await getBalance(provider.connection, vault, moveToken);
+    const { vaultAccount: vaultAccountBefore } = await getAccountData(program);
+    try {
+      const instruction = await createSwapMoveToSolInstruction(
+        program,
+        otherWallet.publicKey,
+        moveToken,
+        amountIn
+      );
+      const tx = new anchor.web3.Transaction().add(instruction);
+      const txHash = await provider.sendAndConfirm(tx, [otherWallet]);
+      console.log("Swap MOVE to SOL success at tx", txHash);
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+    const {
+      solBalance: solUserBalanceAfter,
+      tokenBalance: tokenUserBalanceAfter,
+    } = await getBalance(provider.connection, otherWallet.publicKey, moveToken);
+    const {
+      solBalance: solVaultBalanceAfter,
+      tokenBalance: tokenVaultBalanceAfter,
+    } = await getBalance(provider.connection, vault, moveToken);
+    const { vaultAccount: vaultAccountAfter } = await getAccountData(program);
+    const expectedAmountOut = new BN((amount * LAMPORTS_PER_SOL) / 10);
+    // SOL user balance increase by expectedAmount
+    assert(
+      solUserBalanceAfter - solUserBalanceBefore == expectedAmountOut.toNumber()
+    );
+    // MOVE user balance decrease by amountIn
+    assert(
+      tokenUserBalanceBefore - tokenUserBalanceAfter ==
+        BigInt(amountIn.toString())
+    );
+    // SOL vault balance decrease by expectedAmount
+    assert(
+      solVaultBalanceBefore - solVaultBalanceAfter ==
+        expectedAmountOut.toNumber()
+    );
+    // MOVE vault balance increase by mountIn
+    assert(
+      tokenVaultBalanceAfter - tokenVaultBalanceBefore ==
+        BigInt(amountIn.toString())
+    );
+    // SOL amount decrease by expectedAmount
+    assert(
+      vaultAccountBefore.solAmount
+        .sub(vaultAccountAfter.solAmount)
+        .eq(expectedAmountOut)
+    );
+    // MOVE amount increase by amountIn
+    assert(
+      vaultAccountAfter.moveAmount
+        .sub(vaultAccountBefore.moveAmount)
+        .eq(amountIn)
+    );
   });
 });

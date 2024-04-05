@@ -17,6 +17,7 @@ pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
     let vault_ata = &ctx.accounts.vault_ata;
     let system_program = &ctx.accounts.system_program;
 
+    msg!("Start transfer MOVE");
     // Transfer MOVE from user_ata to vault_ata
     token::transfer(
         CpiContext::new(
@@ -38,6 +39,7 @@ pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
         return Err(MovePoolError::NotEnoughBalance.into());
     };
 
+    msg!("Start transfer SOL");
     // Transfer SOL from vault to user
     system_program::transfer(
         CpiContext::new_with_signer(
