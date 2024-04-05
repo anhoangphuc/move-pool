@@ -3,7 +3,12 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 import { BN, Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
-import { delay, getBalance, getDefaultWallet } from "../sdk/utils";
+import {
+  createMoveToken,
+  delay,
+  getBalance,
+  getDefaultWallet,
+} from "../sdk/utils";
 import {
   createMint,
   getAccount,
@@ -36,13 +41,7 @@ describe("move-pool", () => {
   let moveDecimal: number;
   before(async () => {
     moveDecimal = 7;
-    moveToken = await token.createMint(
-      provider.connection,
-      wallet,
-      provider.publicKey,
-      null,
-      moveDecimal
-    );
+    moveToken = await createMoveToken(provider.connection, moveDecimal);
 
     otherWallet = anchor.web3.Keypair.generate();
     await provider.connection.requestAirdrop(
