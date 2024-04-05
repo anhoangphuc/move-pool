@@ -50,7 +50,7 @@ pub struct Initialize<'info> {
 }
 
 // Initialize the program
-// Only the program owner can call this instruction
+// Only the program upgrade owner can call this instruction
 pub fn handler<'info>(ctx: Context<Initialize>) -> Result<()> {
     let global_state = &mut ctx.accounts.global_state;
     global_state.initialize(ctx.accounts.authority.key(), ctx.accounts.move_token.key())

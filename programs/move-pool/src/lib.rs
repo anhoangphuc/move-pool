@@ -18,14 +18,18 @@ pub mod move_pool {
     }
 
     pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
-        deposit::deposit_sol::handler(ctx, amount)
+        deposit_sol::handler(ctx, amount)
     }
 
     pub fn deposit_move(ctx: Context<DepositMove>, amount: u64) -> Result<()> {
-        deposit::deposit_move::handler(ctx, amount)
+        deposit_move::handler(ctx, amount)
     }
 
-    pub fn swap_sol_to_move(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
-        swap::swap_sol_to_move::handler(ctx, amount_in)
+    pub fn swap_sol_to_move(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
+        swap_sol_to_move::handler(ctx, amount_in)
+    }
+
+    pub fn swap_move_to_sol(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
+        swap_move_to_sol::handler(ctx, amount_in)
     }
 }

@@ -7,7 +7,7 @@ use anchor_spl::token;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-pub struct SwapSolToMove<'info> {
+pub struct Swap<'info> {
     #[account(
         seeds = [GlobalState::SEED],
         bump,
@@ -46,7 +46,7 @@ pub struct SwapSolToMove<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<SwapSolToMove>, amount_in: u64) -> Result<()> {
+pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
     if amount_in == 0 {
         return Err(MovePoolError::ZeroAmountIn.into());
     }
