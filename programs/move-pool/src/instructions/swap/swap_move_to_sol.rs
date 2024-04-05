@@ -1,9 +1,7 @@
 use crate::error::MovePoolError;
 use crate::events;
 use crate::instructions::Swap;
-use crate::states::*;
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
 use anchor_spl::token;
 
 pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
@@ -15,9 +13,7 @@ pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
     let user = &ctx.accounts.user;
     let user_ata = &ctx.accounts.user_ata;
     let vault_ata = &ctx.accounts.vault_ata;
-    let system_program = &ctx.accounts.system_program;
 
-    msg!("Start transfer MOVE");
     // Transfer MOVE from user_ata to vault_ata
     token::transfer(
         CpiContext::new(
@@ -39,19 +35,9 @@ pub fn handler(ctx: Context<Swap>, amount_in: u64) -> Result<()> {
         return Err(MovePoolError::NotEnoughBalance.into());
     };
 
-    msg!("Start transfer SOL");
     // Transfer SOL from vault to user
-    system_program::transfer(
-        CpiContext::new_with_signer(
-            system_program.to_account_info(),
-            system_program::Transfer {
-                from: vault.to_account_info(),
-                to: user.to_account_info(),
-            },
-            &[&[Vault::SEED, &[ctx.bumps.vault]]],
-        ),
-        amount_out,
-    )?;
+    **vault.to_account_info().try_borrow_mut_lamports()? -= amount_out;
+    **user.to_account_info().try_borrow_mut_lamports()? += amount_out;
     // Update vault balances
     vault.deposit(None, Some(amount_in))?;
     vault.withdraw(Some(amount_out), None)?;
