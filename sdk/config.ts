@@ -10,4 +10,6 @@ export class Config {
   static MOVE_TOKEN = new anchor.web3.PublicKey(
     "618n2rrKFSGr45Lf3mnfxvdTt4zZERXM7FfSATVSjecu"
   );
+
+  static TESTNET_RPC = "https://api.testnet.solana.com";
 }

@@ -10,7 +10,7 @@ import { getMint } from "@solana/spl-token";
 (async () => {
   const wallet = getDefaultWallet();
   const connection = new anchor.web3.Connection(
-    "https://api.testnet.solana.com",
+    Config.TESTNET_RPC,
     "finalized"
   );
   const provider = new anchor.AnchorProvider(

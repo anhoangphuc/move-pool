@@ -4,17 +4,13 @@ import IDL from "../sdk/contracts/move_pool.json";
 import { Config } from "../sdk/config";
 import { delay, getBalance, getDefaultWallet } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
-import {
-  createSwapMoveToSolInstruction,
-  createSwapSolToMoveInstruction,
-} from "../sdk/instrument";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { getAssociatedTokenAddress, getMint } from "@solana/spl-token";
+import { createSwapMoveToSolInstruction } from "../sdk/instrument";
+import { getMint } from "@solana/spl-token";
 import { getAccountData } from "../sdk/pda";
 (async () => {
   const wallet = getDefaultWallet();
   const connection = new anchor.web3.Connection(
-    "https://api.testnet.solana.com",
+    Config.TESTNET_RPC,
     "finalized"
   );
   const provider = new anchor.AnchorProvider(

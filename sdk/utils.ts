@@ -14,8 +14,13 @@ import {
 import * as web3 from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 
-export function getDefaultWallet() {
-  const dataPath = path.join(__dirname, "../id.json");
+export function getDefaultWallet(walletPath?: string) {
+  walletPath = walletPath ? walletPath : "../id.json";
+  // If start with . then it is a relative path
+  // Else it is an absolute path
+  const dataPath = walletPath.startsWith(".")
+    ? path.join(__dirname, walletPath)
+    : path.join(walletPath);
   console.log("data path ", dataPath);
   const data = fs.readFileSync(dataPath);
   return anchor.web3.Keypair.fromSecretKey(

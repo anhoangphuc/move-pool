@@ -1,11 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { createMoveToken, getDefaultWallet } from "../sdk/utils";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { Config } from "../sdk/config";
 
 (async () => {
   const wallet = getDefaultWallet();
   const connection = new anchor.web3.Connection(
-    "https://api.testnet.solana.com",
+    Config.TESTNET_RPC,
     "finalized"
   );
   const moveToken = await createMoveToken(connection, 7, false);

@@ -5,10 +5,20 @@ import { Config } from "../sdk/config";
 import { getDefaultWallet } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
 import { createDepositSolInstruction } from "../sdk/instrument";
-(async () => {
+import { program } from "commander";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+
+type MainArgs = { amount?: string; wallet?: string };
+const main = async (args: MainArgs) => {
+  const amount = args.amount
+    ? new BN(Number(args.amount) * LAMPORTS_PER_SOL)
+    : new BN(100000000);
+
+  const walletPath = args.wallet || "../id2.json";
   const wallet = getDefaultWallet();
+  const depositWallet = getDefaultWallet(walletPath);
   const connection = new anchor.web3.Connection(
-    "https://api.testnet.solana.com",
+    Config.TESTNET_RPC,
     "finalized"
   );
   const provider = new anchor.AnchorProvider(
@@ -25,14 +35,30 @@ import { createDepositSolInstruction } from "../sdk/instrument";
   try {
     const depositSolInstruction = await createDepositSolInstruction(
       program,
-      wallet.publicKey,
-      new BN(100000000)
+      depositWallet.publicKey,
+      amount
     );
     const tx = new anchor.web3.Transaction().add(depositSolInstruction);
-    const txHash = await provider.sendAndConfirm(tx, [wallet]);
-    console.log("Deposit SOL success at tx", txHash);
+    const txHash = await provider.sendAndConfirm(tx, [depositWallet]);
+    console.log(
+      `Deposit ${
+        Number(amount.toString()) / LAMPORTS_PER_SOL
+      } SOL from account ${depositWallet.publicKey.toBase58()} success at tx`,
+      txHash
+    );
   } catch (error) {
     console.error(error);
     throw error;
   }
-})();
+};
+
+program
+  .option("-a, --amount <n>", "Amount (uint: SOL) (default: 0.1)")
+  .option(
+    "-w, --wallet <s>",
+    "Wallet path (Relative to the project or absolute path), (default: ../id2.json)"
+  )
+  .showHelpAfterError();
+program.parse();
+
+main(program.opts<MainArgs>());
