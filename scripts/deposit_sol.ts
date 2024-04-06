@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { MovePool } from "../sdk/contracts/move_pool";
 import IDL from "../sdk/contracts/move_pool.json";
 import { Config } from "../sdk/config";
-import { getDefaultWallet } from "../sdk/utils";
+import { getBalance, getDefaultWallet } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
 import { createDepositSolInstruction } from "../sdk/instrument";
 import { program } from "commander";
@@ -12,7 +12,8 @@ type MainArgs = { amount?: string; wallet?: string };
 const main = async (args: MainArgs) => {
   const amount = args.amount
     ? new BN(Number(args.amount) * LAMPORTS_PER_SOL)
-    : new BN(100000000);
+    : // 0.1 SOL
+      new BN(100000000);
 
   const walletPath = args.wallet || "../id2.json";
   const wallet = getDefaultWallet();
@@ -32,6 +33,12 @@ const main = async (args: MainArgs) => {
     provider
   ) as Program<MovePool>;
 
+  const { solBalance: solBalanceBefore } = await getBalance(
+    connection,
+    depositWallet.publicKey,
+    Config.MOVE_TOKEN
+  );
+
   try {
     const depositSolInstruction = await createDepositSolInstruction(
       program,
@@ -40,9 +47,14 @@ const main = async (args: MainArgs) => {
     );
     const tx = new anchor.web3.Transaction().add(depositSolInstruction);
     const txHash = await provider.sendAndConfirm(tx, [depositWallet]);
+    const { solBalance: solBalanceAfter } = await getBalance(
+      connection,
+      depositWallet.publicKey,
+      Config.MOVE_TOKEN
+    );
     console.log(
       `Deposit ${
-        Number(amount.toString()) / LAMPORTS_PER_SOL
+        (solBalanceBefore - solBalanceAfter) / LAMPORTS_PER_SOL
       } SOL from account ${depositWallet.publicKey.toBase58()} success at tx`,
       txHash
     );

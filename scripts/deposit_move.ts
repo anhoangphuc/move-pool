@@ -2,16 +2,31 @@ import * as anchor from "@coral-xyz/anchor";
 import { MovePool } from "../sdk/contracts/move_pool";
 import IDL from "../sdk/contracts/move_pool.json";
 import { Config } from "../sdk/config";
-import { getDefaultWallet } from "../sdk/utils";
+import { delay, getBalance, getDefaultWallet } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
 import { createDepositMoveInstruction } from "../sdk/instrument";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
-(async () => {
-  const wallet = getDefaultWallet();
+import {
+  getAssociatedTokenAddress,
+  getMint,
+  getOrCreateAssociatedTokenAccount,
+} from "@solana/spl-token";
+import { program } from "commander";
+
+type MainArgs = { amount?: string; wallet?: string };
+
+const main = async (args: MainArgs) => {
   const connection = new anchor.web3.Connection(
     Config.TESTNET_RPC,
     "finalized"
   );
+  const moveMint = await getMint(connection, Config.MOVE_TOKEN, "finalized");
+  const amount = args.amount
+    ? new BN(Number(args.amount) * 10 ** moveMint.decimals)
+    : new BN(1 * 10 ** moveMint.decimals);
+
+  const walletPath = args.wallet || "../id2.json";
+  const wallet = getDefaultWallet();
+  const depositWallet = getDefaultWallet(walletPath);
   const provider = new anchor.AnchorProvider(
     connection,
     new anchor.Wallet(wallet),
@@ -23,23 +38,53 @@ import { getAssociatedTokenAddress } from "@solana/spl-token";
     provider
   ) as Program<MovePool>;
 
-  const userAta = await getAssociatedTokenAddress(
+  const userAta = await getOrCreateAssociatedTokenAccount(
+    connection,
+    wallet,
     Config.MOVE_TOKEN,
-    wallet.publicKey
+    depositWallet.publicKey
   );
+  await delay(3000);
+
+  const moveBalanceBefore = userAta.amount;
+
   try {
-    const depositSolInstruction = await createDepositMoveInstruction(
+    const depositMoveInstruction = await createDepositMoveInstruction(
       program,
-      userAta,
-      wallet.publicKey,
+      userAta.address,
+      depositWallet.publicKey,
       Config.MOVE_TOKEN,
-      new BN(10000000000)
+      amount
     );
-    const tx = new anchor.web3.Transaction().add(depositSolInstruction);
-    const txHash = await provider.sendAndConfirm(tx, [wallet]);
-    console.log("Deposit MOVE success at tx", txHash);
+    const tx = new anchor.web3.Transaction().add(depositMoveInstruction);
+    const txHash = await provider.sendAndConfirm(tx, [depositWallet]);
+    await delay(3000);
+
+    const { tokenBalance: moveBalanceAfter } = await getBalance(
+      connection,
+      depositWallet.publicKey,
+      Config.MOVE_TOKEN
+    );
+    console.log(
+      `Deposit ${
+        (Number(moveBalanceBefore) - Number(moveBalanceAfter)) /
+        10 ** moveMint.decimals
+      } MOVE success from ${depositWallet.publicKey} at tx`,
+      txHash
+    );
   } catch (error) {
     console.error(error);
     throw error;
   }
-})();
+};
+
+program
+  .option("-a, --amount <n>", "Amount (unit: MOVE) (default: 1)")
+  .option(
+    "-w, --wallet <s>",
+    "Wallet path (Relative to the project or absolute path), (default: ../id2.json)"
+  )
+  .showHelpAfterError();
+program.parse();
+
+main(program.opts<MainArgs>());
