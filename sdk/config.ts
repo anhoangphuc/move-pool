@@ -3,4 +3,11 @@ export class Config {
   static BPF_LOADER_PROGRAM_ID = new anchor.web3.PublicKey(
     "BPFLoaderUpgradeab1e11111111111111111111111"
   );
+
+  static MOVE_POOL_ID = new anchor.web3.PublicKey(
+    "AmFDUdCyJM8FAo6RrHyfQWb47bR9Ero8Px8u7KeQbhU8"
+  );
+  static MOVE_TOKEN = new anchor.web3.PublicKey(
+    "618n2rrKFSGr45Lf3mnfxvdTt4zZERXM7FfSATVSjecu"
+  );
 }

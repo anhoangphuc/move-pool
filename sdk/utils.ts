@@ -47,10 +47,13 @@ export async function getBalance(
 
 export async function createMoveToken(
   connection: anchor.web3.Connection,
-  moveDecimal: number
+  moveDecimal: number,
+  withMetadata?: boolean
 ) {
   const keypair = getDefaultWallet();
   const metaplex = Metaplex.make(connection);
+  const balance = await connection.getBalance(keypair.publicKey);
+  console.log("Balance is ", balance);
   const mint = await token.createMint(
     connection,
     keypair,
@@ -58,15 +61,22 @@ export async function createMoveToken(
     keypair.publicKey,
     moveDecimal
   );
+  console.log("Create mint success ", mint.toBase58());
 
-  // get metadata account address
+  // Could not add token metadata to the token in the testnet, due this issues:
+  // https://github.com/metaplex-foundation/mpl-token-metadata/issues/91
+  // So we could return early if we are in the testnet
+
+  if (!withMetadata) {
+    return mint;
+  }
+
   const metadataPDA = metaplex.nfts().pdas().metadata({ mint });
-
   // onchain metadata format
   const tokenMetadata = {
     name: "MOVE",
     symbol: "MOVE",
-    uri: "https://gist.github.com/anhoangphuc/26767ad8edb62f1b934820867eecd1f8",
+    uri: "https://gist.githubusercontent.com/anhoangphuc/26767ad8edb62f1b934820867eecd1f8/raw/4d0afc52d2d0fce1ab83088483d227199550ca20/move_metadata.txt",
     sellerFeeBasisPoints: 0,
     creators: null,
     collection: null,
@@ -93,14 +103,19 @@ export async function createMoveToken(
     )
   );
 
-  const transactionSignature = await web3.sendAndConfirmTransaction(
-    connection,
-    transaction,
-    [keypair]
-  );
+  try {
+    const transactionSignature = await web3.sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [keypair]
+    );
+    console.log(
+      `Create token MOVE with address ${mint.toBase58()} at transaction ${transactionSignature}`
+    );
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 
-  console.log(
-    `Create token MOVE with address ${mint.toBase58()} at transaction ${transactionSignature}`
-  );
   return mint;
 }
