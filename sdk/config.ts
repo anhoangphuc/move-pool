@@ -12,4 +12,8 @@ export class Config {
   );
 
   static TESTNET_RPC = "https://api.testnet.solana.com";
+
+  static DEVNET_RPC = "https://api.devnet.solana.com";
+
+  static MOVE_TOKEN_DEVNET = "HJB9uE7wPSRv6WSib8kR7ZcZSGfcxbBtT1ZTLuf36F6a";
 }

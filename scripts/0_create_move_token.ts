@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { createMoveToken, getDefaultWallet } from "../sdk/utils";
+import { createMoveToken, getDefaultWallet, wrapTx } from "../sdk/utils";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { Config } from "../sdk/config";
 
@@ -29,5 +29,5 @@ import { Config } from "../sdk/config";
     wallet,
     1000000000000
   );
-  console.log("Mint MOVE to user success at tx", tx);
+  console.log("Mint MOVE to user success at tx", wrapTx(tx, connection));
 })();

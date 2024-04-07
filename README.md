@@ -4,10 +4,14 @@ A program on Solana that built and deployed on Solana testnet. The program is a 
 
 ## MOVE token
  
-MOVE token is a SPL-token, with decimal 7, and deployed at address:
+MOVE token is a SPL-token, with decimal 7, and deployed at address on testnet:
 https://solscan.io/token/618n2rrKFSGr45Lf3mnfxvdTt4zZERXM7FfSATVSjecu?cluster=testnet
 
 Because of the [issues]( https://github.com/metaplex-foundation/mpl-token-metadata/issues/91),  so we could not create token metadata for MOVE token on the testnet. 
+
+So, we can not see the token icon, name, symbol, etc. We can see a full token I deployed on devnet, with metadata, at address:
+
+https://solscan.io/token/HJB9uE7wPSRv6WSib8kR7ZcZSGfcxbBtT1ZTLuf36F6a?cluster=devnet
 
 ## MovePool program
 
