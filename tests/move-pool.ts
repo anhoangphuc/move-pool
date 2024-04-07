@@ -1,6 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import * as token from "@solana/spl-token";
 import { BN, Program } from "@coral-xyz/anchor";
 import { MovePool } from "../target/types/move_pool";
 import {
@@ -41,7 +40,7 @@ describe("move-pool", () => {
   let moveDecimal: number;
   before(async () => {
     moveDecimal = 7;
-    moveToken = await createMoveToken(provider.connection, moveDecimal);
+    moveToken = await createMoveToken(provider.connection, moveDecimal, true);
 
     otherWallet = anchor.web3.Keypair.generate();
     await provider.connection.requestAirdrop(

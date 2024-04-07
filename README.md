@@ -35,7 +35,11 @@ So to build the program successfully, you first need to install Solana version 1
     `
 4. To build the program, run the command: 
  
-     `anchor build`
+     `anchor build` 
+- Or you can update and build the program, reflect the changes for the scripts, by running the command:
+ 
+     `yarn build-contract`
+
 # How to test
 You first need to install required dependencies for running test. Run the command:
 

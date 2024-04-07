@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { delay, getDefaultWallet } from "../sdk/utils";
+import { delay, getDefaultWallet, wrapTx } from "../sdk/utils";
 import {
   getMint,
   getOrCreateAssociatedTokenAccount,
@@ -39,7 +39,7 @@ const main = async (args: MainArgs) => {
   );
   console.log(
     `Mint 1000 MOVE to user ${faucetWallet.publicKey} success at tx`,
-    tx
+    wrapTx(tx, connection)
   );
 };
 

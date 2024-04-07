@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { MovePool } from "../sdk/contracts/move_pool";
 import IDL from "../sdk/contracts/move_pool.json";
 import { Config } from "../sdk/config";
-import { getBalance, getDefaultWallet } from "../sdk/utils";
+import { getBalance, getDefaultWallet, wrapTx } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
 import { createDepositSolInstruction } from "../sdk/instrument";
 import { program } from "commander";
@@ -56,7 +56,7 @@ const main = async (args: MainArgs) => {
       `Deposit ${
         (solBalanceBefore - solBalanceAfter) / LAMPORTS_PER_SOL
       } SOL from account ${depositWallet.publicKey.toBase58()} success at tx`,
-      txHash
+      wrapTx(txHash, connection)
     );
   } catch (error) {
     console.error(error);

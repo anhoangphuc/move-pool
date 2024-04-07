@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { MovePool } from "../sdk/contracts/move_pool";
 import IDL from "../sdk/contracts/move_pool.json";
 import { Config } from "../sdk/config";
-import { delay, getBalance, getDefaultWallet } from "../sdk/utils";
+import { delay, getBalance, getDefaultWallet, wrapTx } from "../sdk/utils";
 import { BN, Program } from "@coral-xyz/anchor";
 import { createSwapSolToMoveInstruction } from "../sdk/instrument";
 import { program } from "commander";
@@ -64,7 +64,7 @@ const main = async (args: MainArgs) => {
         (Number(moveBalanceAfter) - Number(moveBalanceBefore)) /
         10 ** moveMint.decimals
       } MOVE success at tx`,
-      txHash
+      wrapTx(txHash, connection)
     );
   } catch (error) {
     console.error(error);

@@ -58,7 +58,6 @@ export async function createMoveToken(
   const keypair = getDefaultWallet();
   const metaplex = Metaplex.make(connection);
   const balance = await connection.getBalance(keypair.publicKey);
-  console.log("Balance is ", balance);
   const mint = await token.createMint(
     connection,
     keypair,
@@ -123,4 +122,19 @@ export async function createMoveToken(
   }
 
   return mint;
+}
+
+export function wrapTx(txHash: string, connection: anchor.web3.Connection) {
+  let cluster = "";
+  if (connection.rpcEndpoint.includes("devnet")) {
+    cluster = "devnet";
+  } else if (connection.rpcEndpoint.includes("testnet")) {
+    cluster = "testnet";
+  } else if (connection.rpcEndpoint.includes("mainnet")) {
+    cluster = "mainnet";
+  }
+
+  return cluster === ""
+    ? txHash
+    : `https://solscan.io/tx/${txHash}?cluster=${cluster}`;
 }
