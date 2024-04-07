@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { getDefaultWallet } from "../sdk/utils";
+import { delay, getDefaultWallet } from "../sdk/utils";
 import {
   getMint,
   getOrCreateAssociatedTokenAccount,
@@ -24,9 +24,10 @@ const main = async (args: MainArgs) => {
     wallet,
     Config.MOVE_TOKEN,
     faucetWallet.publicKey,
-    false,
-    "finalized"
+    false
   );
+
+  await delay(3000);
 
   const tx = await mintTo(
     connection,
