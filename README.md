@@ -2,13 +2,14 @@
 
 A program on Solana that built and deployed on Solana testnet. The program is a simple dex that allow user can swap between SOL and MOVE Token at rate 1:10
 
-1. MOVE token
+## MOVE token
  
 MOVE token is a SPL-token, with decimal 7, and deployed at address:
 https://solscan.io/token/618n2rrKFSGr45Lf3mnfxvdTt4zZERXM7FfSATVSjecu?cluster=testnet
 
 Because of the [issues]( https://github.com/metaplex-foundation/mpl-token-metadata/issues/91),  so we could not create token metadata for MOVE token on the testnet. 
-2. MOVE Pool Program
+
+## MovePool program
 
 MOVE Pool program is deployed at address:
 https://solscan.io/account/AmFDUdCyJM8FAo6RrHyfQWb47bR9Ero8Px8u7KeQbhU8?cluster=testnet
