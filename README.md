@@ -2,13 +2,14 @@
 
 A program on Solana that built and deployed on Solana testnet. The program is a simple dex that allow user can swap between SOL and MOVE Token at rate 1:10
 
-1. MOVE token
+## MOVE token
  
 MOVE token is a SPL-token, with decimal 7, and deployed at address:
 https://solscan.io/token/618n2rrKFSGr45Lf3mnfxvdTt4zZERXM7FfSATVSjecu?cluster=testnet
 
 Because of the [issues]( https://github.com/metaplex-foundation/mpl-token-metadata/issues/91),  so we could not create token metadata for MOVE token on the testnet. 
-2. MOVE Pool Program
+
+## MovePool program
 
 MOVE Pool program is deployed at address:
 https://solscan.io/account/AmFDUdCyJM8FAo6RrHyfQWb47bR9Ero8Px8u7KeQbhU8?cluster=testnet
@@ -101,3 +102,11 @@ To swap MOVE to SOL, you can run the file `scripts/swap_move_to_sol.ts`. The scr
 - To swap `0.2 MOVE` for `0.02 SOL` from a wallet from an absolute path, run the command:
 
 `yarn ts-node scripts/swap_move_to_sol.ts -w /Users/hoangphuc/.config/solana/id1.json -a 0.2`
+
+## Faucet MOVE
+To faucet 1000 MOVE token, you can run `scripts/2_faucet_move.ts`. The script have 1 argument:
+- `-w` or `--wallet` : The wallet that receive MOVE token. You can pass the directory of the wallet, in the relative form of the `scripts` folder, or absolute form.
+
+- To faucet 1000 MOVE token to the default wallet, run the command:
+ 
+`yarn ts-node scripts/2_faucet_move_token.ts`
